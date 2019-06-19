@@ -1,0 +1,212 @@
+---
+title: "main.analysis"
+author: "CJ Robinson"
+date: "5/22/2019"
+output: html_document
+---
+## Set Up
+
+Set working directory to the location of the master replication folder
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "")
+```
+
+Load required packages
+
+```{r packages}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+```
+
+Load the two datasets
+
+```{r load_data}
+gss1 <- read.csv(file = "./data/gss1.csv")
+gss2 <- read.csv(file = "./data/gss2.csv")
+```
+
+Factor several variables for easier analysis in regression models. Factoring variables is important in doing regression analyses when there are non-linear differences in the changes of variables. For example, you cannot define a constant difference between not working and working parttime and working parttime and working fulltime. In this case, we factor the variable and R will create dummy variables for each value while leaving one out. 
+
+After I factored the variables, I releveled them to change while variable is omitted from analysis. For the most part, I did this to omit the response with the least sample size. 
+
+I then changed the numeric variables back into strings for easier visualization in the regression tables. 
+
+```{r factor1}
+gss1 <- gss1 %>%
+    mutate(citysize = factor(gss1$citysize))
+
+gss1$citysize <- relevel(gss1$citysize, 1)
+
+gss1$citysize <- revalue(gss1$citysize, c("3" = "mostbig", 
+                                        "2" = "largermedium", 
+                                        "1" = "smallermedium", 
+                                        "0" = "mostsmall"))
+
+```
+
+```{r factor2}
+gss2 <- gss2 %>%
+  mutate(citysize = factor(gss2$citysize),
+         work = factor(gss2$work))
+
+gss2$citysize <- relevel(gss2$citysize, 1)
+
+gss2$work <- relevel(gss2$work, 1)
+
+gss2$citysize <- revalue(gss2$citysize, c("3" = "mostbig", 
+                                        "2" = "largermedium", 
+                                        "1" = "smallermedium", 
+                                        "0" = "mostsmall"))
+
+gss2$work <- revalue(gss2$work, c("0" = "notworking", 
+                                "1" = "parttime", 
+                                "2" = "fulltime"))
+
+```
+
+
+## Bivariate Models - Dataset 1
+
+Dataset 1, Car Ownership, Bivariate Logit Regression with just work and car owernship
+
+```{r bivar_model_car1}
+bivar_model_car1 <- glm(work ~ has_car, gss1, family = "binomial")
+summary(bivar_model_car1)
+```
+
+Saves Model
+```{r save_bivar_car1}
+save(bivar_model_car1, file = "./data/bivar_model_car1.RData")
+```
+
+
+Dataset 2, Public Transit, Bivariate Logit Regression with just work and public transit
+
+```{r bivar_model_pt1}
+bivar_model_pt1 <- glm(work ~ needs_access, gss1, family = "binomial")
+summary(bivar_model_pt1)
+```
+
+Saves Model
+```{r save_bivar_pt1}
+save(bivar_model_pt1, file = "./data/bivar_model_pt1.RData")
+```
+
+## Bivariate Models - Dataset 2
+
+Dataset 2, Car Ownership, Bivariate OLS Regression with just mobility and car ownership
+
+```{r bivar_model_car2}
+bivar_model_car2 <- lm(mobility ~ has_car, gss2)
+summary(bivar_model_car2)
+```
+
+Saves Model
+```{r save_bivar_car2}
+save(bivar_model_car2, file = "./data/bivar_model_car2.RData")
+```
+
+Dataset 2, Public Transit, Bivariate OLS Regression with just mobility and public transit
+
+```{r bivar_model_pt2}
+bivar_model_pt2 <- lm(mobility ~ needs_access, gss2)
+summary(bivar_model_pt2)
+```
+
+Saves Model
+
+```{r save_bivar_pt2}
+save(bivar_model_pt2, file = "./data/bivar_model_pt2.RData")
+```
+
+## Multivariate Models - Dataset 1
+
+Dataset 1, Car Ownership, Multivariate Logit Regression with controls
+
+```{r multivar_model_car1}
+multivar_model_car1 <- glm(work ~ has_car + 
+                             income + 
+                             age + 
+                             citysize + 
+                             race + 
+                             gender + 
+                             educ +
+                             children, gss1, family = "binomial")
+summary(multivar_model_car1)
+```
+
+Saves Model
+
+```{r save_multivar_car1}
+save(multivar_model_car1, file = "./data/multivar_model_car1.RData")
+```
+
+Dataset 1, Public Transit, Multivariate Logit Regression with controls
+
+```{r multivar_model_pt1}
+multivar_model_pt1 <- glm(work ~ needs_access + 
+                             income + 
+                             age + 
+                             citysize + 
+                             race + 
+                             gender + 
+                             educ +
+                             children, gss1, family = "binomial")
+summary(multivar_model_pt1)
+```
+
+Saves Model
+
+```{r save_multivar_pt1}
+save(multivar_model_pt1, file = "./data/multivar_model_pt1.RData")
+```
+
+## Multivariate Models - Dataset 2
+
+Dataset 2, Car Ownership, Multivariate OLS Regression with controls
+
+```{r multivar_model_car2}
+multivar_model_car2 <- lm(mobility ~ has_car + 
+                            citysize + 
+                            income + 
+                            race +
+                            gender + 
+                            educ + 
+                            age + 
+                            children + 
+                            work, gss2)
+summary(multivar_model_car2)
+```
+
+Saves Model
+
+```{r save_multivar_car2}
+save(multivar_model_car2, file = "./data/multivar_model_car2.RData")
+```
+
+Dataset 2, Public Transit, Multivariate OLS Regression with Controls
+
+```{r multivar_model_pt2}
+multivar_model_pt2 <- lm(mobility ~ needs_access + 
+                            citysize + 
+                            income + 
+                            race +
+                            gender + 
+                            educ + 
+                            age + 
+                            children + 
+                            work, gss2)
+summary(multivar_model_pt2)
+```
+
+Saves Model
+
+```{r save_multivar_pt2}
+save(multivar_model_pt2, file = "./data/multivar_model_pt2.RData")
+```
+
+
+

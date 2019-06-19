@@ -1,0 +1,284 @@
+---
+title: "data.processing"
+author: "CJ Robinson"
+date: "5/20/2019"
+output: html_document
+---
+##Set Up
+
+Set working directory to the location of the master replication folder
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "")
+```
+
+Load required packages
+
+```{r packages}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+```
+
+Load data from CSV file attained from GSS Data Explorer (https://gssdataexplorer.norc.org/)
+
+```{r load_data}
+survey_master <- read.csv("./data/survey_master.csv", header = TRUE, sep = ",", stringsAsFactors = FALSE)
+```
+
+##Data Cleaning
+
+Rename variables for better use in cleaning and analysis
+
+```{r rename}
+gss <- survey_master %>%
+  rename(work = "Labor.force.status",
+         needs_access = "Need.but.unable.to.use.public.transport.",
+         findjob = "How.likely.r.make.effort.for.new.job.next.year",
+         mobility = "Could.r.find.equally.good.job",
+         jobsecurity = "Is.r.likely.to.lose.job",
+         citysize = "Expanded.norc..size.code",
+         income = "Respondents.income",
+         race = "Race.of.respondent",
+         gender = "Respondents.sex",
+         educ = "Highest.year.of.school.completed",
+         age = "Age.of.respondent",
+         children = "Number.of.children",
+         has_car = "Do.not.have.a.car",
+         gov = "Govt.or.private.employee",
+         prestige = 'Rs.occupational.prestige.score..2010.')
+```
+
+Filter for those not in the labor force (Unemployed or some form of employment)
+
+```{r labor_force}
+gss <- gss %>%
+  filter(work != "School", 
+         work != "Other", 
+         work != "Keeping house",
+         work != "Retired")
+```
+
+Filter for the four largest city sizes
+
+```{r citysize}
+gss <- gss %>%
+  filter(citysize == "City gt 250000" |
+           citysize == "City,50-250000" |
+           citysize == "Suburb, lrg city" |
+           citysize == "Suburb, med city")
+```
+
+Filter incomes under $60,000
+
+```{r income}
+gss <- gss %>%
+  filter(income == "Under $1 000" ||
+           income == "$1 000 to 2 999" |
+           income == "$3 000 to 3 999" |
+           income == "$4 000 to 4 999" |
+           income == "$5 000 to 5 999" |
+           income == "$6 000 to 6 999" |
+           income == "$7 000 to 7 999" |
+           income == "$8 000 to 9 999" |
+           income == "$10000 to 12499" |
+           income == "$12500 to 14999" |
+           income == "$15000 to 17499" |
+           income == "$17500 to 19999" |
+           income == "$20000 to 22499" |
+           income == "$22500 to 24999" |
+           income == "$25000 to 29999" |
+           income == "$30000 to 34999" |
+           income == "$35000 to 39999" |
+           income == "$40000 to 49999" |
+           income == "$50000 to 59999")
+```
+
+
+## Dataset 1 - Employment Status
+
+Selects for variables necessary to Dataset 1
+
+```{r select1}
+gss1 <- gss %>%
+  select(work,
+         needs_access,
+         has_car,
+         citysize,
+         income,
+         race,
+         gender,
+         children,
+         age, 
+         educ)
+```
+
+Filters out blank responses
+
+```{r blanks1}
+gss1[gss1 == "Not applicable"] <- NA
+gss1[gss1 == "No answer"] <- NA
+gss1[gss1 == "Dont know"] <- NA
+gss1[gss1 == "Don't know"] <- NA
+gss1[gss1 == "Dk na"] <- NA
+gss1 <- na.omit(gss1)
+```
+
+
+Utilize the next section as a sort of "codebook" for values in the first cleaned dataset. This also converts the dataset to all numeric values. I assigned 0's to "No" and 1's to "Yes" when appropriate, and otherwise the coding decisions are arbitrary. 
+
+Note: has_car is coded backward so values go negative (No car is a 0) to positive (car is a 1)
+because the question asks the respondents if they DO NOT have a car
+
+```{r coding1}
+gss1$work[gss1$work == "Unempl, laid off"] <- 0
+gss1$work[gss1$work == "Working fulltime"] <- 1
+gss1$work[gss1$work == "Working parttime"] <- 1
+gss1$work[gss1$work == "Temp not working"] <- 1
+
+gss1$needs_access[gss1$needs_access == "No"] <- 0
+gss1$needs_access[gss1$needs_access == "Yes"] <- 1
+
+gss1$citysize[gss1$citysize == "Suburb, med city"] <- 0
+gss1$citysize[gss1$citysize == "Suburb, lrg city"] <- 1
+gss1$citysize[gss1$citysize == "City,50-250000"] <- 2
+gss1$citysize[gss1$citysize == "City gt 250000"] <- 3
+
+gss1$income[gss1$income == "Under $1 000"] <- 5000
+gss1$income[gss1$income == "$1 000 to 2 999"] <- 1500
+gss1$income[gss1$income == "$3 000 to 3 999"] <- 3500
+gss1$income[gss1$income == "$4 000 to 4 999"] <- 4500
+gss1$income[gss1$income == "$5 000 to 5 999"] <- 5500
+gss1$income[gss1$income == "$6 000 to 6 999"] <- 6500
+gss1$income[gss1$income == "$7 000 to 7 999"] <- 7500
+gss1$income[gss1$income == "$8 000 to 9 999"] <- 9000
+gss1$income[gss1$income == "$10000 to 12499"] <- 11250
+gss1$income[gss1$income == "$12500 to 14999"] <- 13750
+gss1$income[gss1$income == "$15000 to 17499"] <- 16250
+gss1$income[gss1$income == "$17500 to 19999"] <- 18750
+gss1$income[gss1$income == "$20000 to 22499"] <- 21250
+gss1$income[gss1$income == "$22500 to 24999"] <- 23750
+gss1$income[gss1$income == "$25000 to 29999"] <- 27500
+gss1$income[gss1$income == "$30000 to 34999"] <- 32500
+gss1$income[gss1$income == "$35000 to 39999"] <- 37500
+gss1$income[gss1$income == "$40000 to 49999"] <- 45000
+gss1$income[gss1$income == "$50000 to 59999"] <- 55000
+
+gss1$race[gss1$race == "White"] <- 0
+gss1$race[gss1$race == "Black"] <- 1
+gss1$race[gss1$race == "Other"] <- 1
+
+gss1$gender[gss1$gender == "Male"] <- 0
+gss1$gender[gss1$gender == "Female"] <- 1
+
+gss1$has_car[gss1$has_car == "No"] <- 1
+gss1$has_car[gss1$has_car == "Yes"] <- 0
+
+gss1$children[gss1$children == "Eight or more"] <- 8
+
+gss1$children <- as.numeric(gss1$children)
+```
+
+Export Dataset 1 to a CSV file
+
+```{r export1}
+write.csv(gss1, "./data/gss1.csv")
+```
+
+## Dataset 2 - Employment Mobility
+
+Selects for variables necessary to Dataset 2
+
+```{r select2}
+gss2 <- gss %>%
+  select(work,
+         needs_access,
+         has_car,
+         mobility,
+         citysize,
+         income,
+         race,
+         gender,
+         children,
+         age,
+         educ)
+```
+
+Filters out blank responses
+
+```{r blanks2}
+gss2[gss2 == "Not applicable"] <- NA
+gss2[gss2 == "No answer"] <- NA
+gss2[gss2 == "Dont know"] <- NA
+gss2[gss2 == "Don't know"] <- NA
+gss2[gss2 == "Dk na"] <- NA
+gss2 <- na.omit(gss2)
+```
+
+The main difference between these two coding sets is in reference to the variable "work." Dataset 1 includes unemployed respondents while Dataset 2 does not. 
+
+```{r coding2}
+gss2[gss2 == "Unempl, laid off"] <- NA
+gss2 <- na.omit(gss2)
+
+gss2$work[gss2$work == "Working fulltime"] <- 2
+gss2$work[gss2$work == "Working parttime"] <- 1
+gss2$work[gss2$work == "Temp not working"] <- 0
+
+gss2$needs_access[gss2$needs_access == "No"] <- 0
+gss2$needs_access[gss2$needs_access == "Yes"] <- 1
+
+gss2$mobility[gss2$mobility == "Not easy"] <- 0
+gss2$mobility[gss2$mobility == "Somewhat easy"] <- 1
+gss2$mobility[gss2$mobility == "Very easy"] <- 2
+
+gss2$citysize[gss2$citysize == "Suburb, med city"] <- 0
+gss2$citysize[gss2$citysize == "Suburb, lrg city"] <- 1
+gss2$citysize[gss2$citysize == "City,50-250000"] <- 2
+gss2$citysize[gss2$citysize == "City gt 250000"] <- 3
+
+gss2$income[gss2$income == "Under $1 000"] <- 5000
+gss2$income[gss2$income == "$1 000 to 2 999"] <- 1500
+gss2$income[gss2$income == "$3 000 to 3 999"] <- 3500
+gss2$income[gss2$income == "$4 000 to 4 999"] <- 4500
+gss2$income[gss2$income == "$5 000 to 5 999"] <- 5500
+gss2$income[gss2$income == "$6 000 to 6 999"] <- 6500
+gss2$income[gss2$income == "$7 000 to 7 999"] <- 7500
+gss2$income[gss2$income == "$8 000 to 9 999"] <- 9000
+gss2$income[gss2$income == "$10000 to 12499"] <- 11250
+gss2$income[gss2$income == "$12500 to 14999"] <- 13750
+gss2$income[gss2$income == "$15000 to 17499"] <- 16250
+gss2$income[gss2$income == "$17500 to 19999"] <- 18750
+gss2$income[gss2$income == "$20000 to 22499"] <- 21250
+gss2$income[gss2$income == "$22500 to 24999"] <- 23750
+gss2$income[gss2$income == "$25000 to 29999"] <- 27500
+gss2$income[gss2$income == "$30000 to 34999"] <- 32500
+gss2$income[gss2$income == "$35000 to 39999"] <- 37500
+gss2$income[gss2$income == "$40000 to 49999"] <- 45000
+gss2$income[gss2$income == "$50000 to 59999"] <- 55000
+
+gss2$race[gss2$race == "White"] <- 0
+gss2$race[gss2$race == "Black"] <- 1
+gss2$race[gss2$race == "Other"] <- 1
+
+gss2$gender[gss2$gender == "Male"] <- 0
+gss2$gender[gss2$gender == "Female"] <- 1
+
+gss2$has_car[gss2$has_car == "No"] <- 1
+gss2$has_car[gss2$has_car == "Yes"] <- 0
+
+gss2$children[gss2$children == "Eight or more"] <- 8
+```
+
+Export Dataset 2
+
+```{r export1}
+write.csv(gss2, "./data/gss2.csv")
+```
+
+
+
+
+
+

@@ -1,0 +1,166 @@
+---
+title: "tables"
+author: "CJ Robinson"
+date: "5/23/2019"
+output: html_document
+---
+## Set Up
+
+Set working directory to the location of the master replication folder
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "")
+```
+
+Load required packages
+
+```{r packages}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+```
+
+Load the two datasets and regression analysis
+
+```{r load_data}
+gss1 <- read.csv(file = "./data/gss1.csv")
+gss2 <- read.csv(file = "./data/gss2.csv")
+load("./data/bivar_model_pt1.RData")
+load("./data/bivar_model_pt2.RData")
+load("./data/bivar_model_car1.RData")
+load("./data/bivar_model_car2.RData")
+load("./data/multivar_model_pt1.RData")
+load("./data/multivar_model_pt2.RData")
+load("./data/multivar_model_car1.RData")
+load("./data/multivar_model_car2.RData")
+```
+
+Creates table for summary statistics for control variables in Dataset 1
+
+```{r summary_1}
+summarystat1 <- gss1 %>% 
+  select(-X) %>%
+  select(-has_car) %>%
+  select(-needs_access)
+
+writeLines(capture.output(stargazer(summarystat1, title = "Summary Statistics for Controls in Dataset 1", type = "latex")), "./tables/summary_1.tex")
+```
+
+Creates table for summary statistics for control variables in Dataset 2
+
+```{r summary_2}
+summarystat2 <- gss2 %>% 
+  select(-has_car) %>%
+  select(-needs_access) %>%
+  select(-mobility)
+  
+writeLines(capture.output(stargazer(summarystat2, title = "Summary Statistics for Controls in Dataset 2", type = "latex")), "./tables/summary_2.tex")
+```
+
+Creates correlation table for Datset 1
+
+```{r correlation_1}
+cor1 <- gss1 %>% 
+  select(-X) %>%
+  select(-has_car) %>%
+  select(-needs_access)
+
+gss_cor1 <- cor(cor1)
+
+writeLines(capture.output(stargazer(gss_cor1, title = "Correlation Matrix for Controls in Dataset 1",  type = "latex")), "./tables/correlation_1.tex")
+```
+
+Creates correlation table for Datset 2
+
+```{r correlation_2}
+cor2 <- gss2 %>% 
+  select(-X) %>%
+  select(-mobility) %>%
+  select(-has_car) %>%
+  select(-needs_access)
+
+gss_cor2 <- cor(cor2)
+
+writeLines(capture.output(stargazer(gss_cor2, title = "Correlation Matrix for Controls in Dataset 2",  type = "latex")), "./tables/correlation_2.tex")
+```
+
+Further examines race relationship in Dataset 2
+
+```{r race_2}
+race_analysis <- lm(race ~ mobility, gss2)
+
+summary(race_analysis)
+
+writeLines(capture.output(stargazer(race_analysis,
+          title = "Bivariate Model of Race in Dataset 2",
+          dep.var.labels = "Employment Mobility of Respondent",
+          covariate.labels = "Race",
+          type = "latex", align = TRUE, no.space = TRUE)), "./tables/race_2.tex")
+```
+
+Creates Bivariate Table for Dataset 1
+
+```{r bivar_table_1}
+writeLines(capture.output(stargazer(bivar_model_pt1, bivar_model_car1,
+          title = "Bivariate Models in Dataset 1",
+          dep.var.labels = "Employment Status of Respondent",
+          covariate.labels = c("Needs Access to Public Transit",
+                               "Has a car"),
+          type = "latex", align = TRUE, no.space = TRUE)), "./tables/bivar_table_1.tex")
+```
+
+Creates Multivariate Table for Dataset 1
+
+```{r multivar_table_1}
+writeLines(capture.output(stargazer(multivar_model_pt1, multivar_model_car1,
+          title = "Model Comparisons of Logit Regression in Dataset 1",
+          dep.var.labels = "Employment Status of Respondent",
+          covariate.labels = c("Needs Access to Public Transit",
+                               "Has a Car",
+                               "Income",
+                               "Age",
+                               "3rd LargestCity Size",
+                               "2nd Largest City Size",
+                               "1st Largest City Size",
+                               "Race",
+                               "Gender",
+                               "Education",
+                               "Children"),
+          type = "latex", align = TRUE, no.space = TRUE)), "./tables/multivar_table_1.tex")
+
+```
+
+Creates Bivariate Table for Dataset 2
+
+```{r bivar_table_2}
+writeLines(capture.output(stargazer(bivar_model_pt2, bivar_model_car2,
+          title = "Bivariate Models in Dataset 2",
+          dep.var.labels = "Employment Mobility of Respondent",
+          covariate.labels = c("Needs Access to Public Transit",
+                               "Has a car"),
+          type = "latex", align = TRUE, no.space = TRUE)), "./tables/bivar_table_2.tex")
+```
+
+Creates Multivariate Table for Dataset 2
+
+```{r multivar_table_2}
+writeLines(capture.output(stargazer(multivar_model_pt2, multivar_model_car2,
+          title = "Model Comparisons of Different Variable Formulations in Dataset 2",
+          dep.var.labels = "Employment Mobility of Respondent",
+          covariate.labels = c("Needs Access to Public Transit",
+                               "Has a Car",
+                               "3rd Largest City Size",
+                               "2nd Largest City Size",
+                               "1st Largest City Size",
+                               "Income",
+                               "Race",
+                               "Gender",
+                               "Education",
+                               "Age",
+                               "Children",
+                               "Part-Time Workers",
+                               "Full-Time Workers"),
+          type = "latex", align = TRUE, no.space = TRUE)), "./tables/multivar_table_2.tex")
+```
+

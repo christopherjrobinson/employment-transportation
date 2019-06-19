@@ -1,0 +1,307 @@
+---
+title: "figures"
+author: "CJ Robinson"
+date: "5/23/2019"
+output: html_document
+---
+## Set Up
+
+Set working directory to the location of the master replication folder
+
+```{r setup}
+knitr::opts_knit$set(root.dir = "")
+```
+
+Load required packages
+
+```{r packages}
+library(plyr)
+library(dplyr)
+library(ggplot2)
+library(stargazer)
+```
+
+Load the two datasets and regression analysis
+
+```{r load_data}
+gss1 <- read.csv(file = "./data/gss1.csv")
+gss2 <- read.csv(file = "./data/gss2.csv")
+load("./data/bivar_model_pt1.RData")
+load("./data/bivar_model_pt2.RData")
+load("./data/bivar_model_car1.RData")
+load("./data/bivar_model_car1.RData")
+load("./data/multivar_model_pt1.RData")
+load("./data/multivar_model_pt2.RData")
+load("./data/multivar_model_car1.RData")
+load("./data/multivar_model_pt2.RData")
+```
+
+Creates simple barchart for Dataset 2 demonstrating the mean mobility for those with and without cars. I first factored "has_car" so I could more easily display the results on the x axis as either "yes" or "no."
+
+```{r mean_mobility_car}
+gssplot <- gss2
+
+gssplot$has_car <- factor(gssplot$has_car)
+
+carplot <- ggplot(gssplot, aes(x = has_car, y = mobility)) +
+  stat_summary(fun.y = "mean", geom = "bar") +
+  labs(y = "Mean Mobility", x = "Has a Car") +
+  theme(axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank(),
+        panel.background = element_blank(),
+        text = element_text(size = 22)) +
+  scale_x_discrete(labels = (c("0" = "No", "1" = "Yes"))) +
+  scale_y_continuous(breaks = c(0.0, 0.2, 0.4, 0.6, 0.8))
+
+
+carplot
+
+ggsave(filename = "./figures/mean_mobility_car.png", plot = carplot)
+```
+
+Creates simple barchart for Dataset 2 demonstrating the mean mobility for those with and without transportation access. I factored the variable for the same reason as above. 
+
+```{r mean_mobility_pt}
+gssplot$needs_access <- factor(gssplot$needs_access)
+
+ptplot <- ggplot(gssplot, aes(x = needs_access, y = mobility)) +
+  stat_summary(fun.y = "mean", geom = "bar") +
+  labs(y = "Mean Mobility", x = "Needs Access to Public Transit") +
+  theme(axis.line = element_blank(),
+        axis.ticks = element_blank(),
+        panel.grid = element_blank(),
+        panel.background = element_blank(),
+        text = element_text(size = 22)) + 
+  scale_x_discrete(labels = (c("0" = "No", "1" = "Yes"))) +
+  scale_y_continuous(breaks = c(0.0, 0.2, 0.4, 0.6, 0.8))
+
+ptplot
+
+ggsave(filename = "./figures/mean_mobility_pt.png", plot = ptplot)
+```
+
+
+Creates predicted values for Dataset 1 Public Transit Bivariate Model by creating a dataframe with the indepndent variable included in the regression, and then using the function "predict" and the previous regression to find a predicted value of employment status based on public transit access. 
+
+```{r bi_predict_values_pt1}
+bi_ptlogit_pred_df <- expand.grid(needs_access = c(0, 1))
+
+bi_ptlogit_pred <- predict(bivar_model_pt1, newdata = bi_ptlogit_pred_df, type = "response", se = TRUE)
+```
+
+For the 95% confidence interval, I had to manually create the results by taking the preducted results and subtracting/adding the standard error times 1.96.
+
+```{r predict_logit_confidence}
+predictracebiv_results <- cbind(bi_ptlogit_pred_df, bi_ptlogit_pred)
+predictracebiv_results$predProb <- plogis(predictracebiv_results$fit)
+predictracebiv_results$lwr <- plogis(predictracebiv_results$fit - (1.96 * predictracebiv_results$se.fit))
+predictracebiv_results$upr <- plogis(predictracebiv_results$fit + (1.96 * predictracebiv_results$se.fit))
+```
+
+Creates predict plot for Dataset 1 Public Transit Bivariate Model using predicted values. 
+
+```{r bi_predict_plot_pt1}
+predictracebiv_plot <- ggplot(predictracebiv_results, 
+                               aes(x = needs_access, y = predProb, ymin = lwr, ymax = upr)) +
+  geom_point() + 
+  geom_errorbar() +
+  labs(y = "Predicted Employment Status", 
+       x = "Needs Access to Public Transit") + 
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_x_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1)) +
+  coord_flip()
+
+ggsave(filename = "./figures/bi_predict_plot_pt1.png", width = 5, plot = predictracebiv_plot)
+```
+
+Creates predicted values for Dataset 1 Car Ownership Bivariate Model using methods described above. 
+
+```{r bi_predict_values_car1}
+bi_carlogit_pred_df <- expand.grid(has_car = c(0, 1))
+
+bi_carlogit_pred <- predict(bivar_model_car1, newdata = bi_carlogit_pred_df, type = "response", se = TRUE)
+
+predictracebiv_results <- cbind(bi_carlogit_pred_df, bi_carlogit_pred)
+predictracebiv_results$predProb <- plogis(predictracebiv_results$fit)
+predictracebiv_results$lwr <- plogis(predictracebiv_results$fit - (1.96 * predictracebiv_results$se.fit))
+predictracebiv_results$upr <- plogis(predictracebiv_results$fit + (1.96 * predictracebiv_results$se.fit))
+```
+
+Creates predict plot for Dataset 1 Car Ownership Bivariate Model using predicted values. 
+
+```{r bi_predict_plot_car1}
+predictracebiv_plot2 <- ggplot(predictracebiv_results, 
+                               aes(x = has_car, y = predProb, ymin = lwr, ymax = upr)) +
+  geom_point() + 
+  geom_errorbar() +
+  labs(y = "Predicted Employment Status", 
+                       x = "Has a Car") + 
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_x_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1)) +
+  coord_flip()
+
+predictracebiv_plot2
+
+ggsave(filename = "./figures/bi_predict_plot_car1.png", width = 5, plot = predictracebiv_plot2)
+
+```
+
+Creates predicted values for Dataset 1 Public Transit Model by creating a dataframe with controlled version of all variables included in the regression, and then using the function "predict" and the previous regression to find a predicted value of employment status based on public transit access. 
+
+```{r multi_predict_values_pt1}
+ptlogit_pred_df <- expand.grid(needs_access = c(0, 1),
+                               income = mean(gss1$income),
+                               age = mean(gss1$age),
+                               citysize = "largermedium",
+                               race = 0,
+                               gender = 0,
+                               educ = mean(gss1$educ),
+                               children = mean(gss1$children))
+
+ptlogit_pred <- predict(multivar_model_pt1, newdata = ptlogit_pred_df, type = "response", se = TRUE)
+
+ptlogit_pred
+
+predictracebiv_results <- cbind(ptlogit_pred_df, ptlogit_pred)
+predictracebiv_results$predProb <- plogis(predictracebiv_results$fit)
+predictracebiv_results$lwr <- plogis(predictracebiv_results$fit - (1.96 * predictracebiv_results$se.fit))
+predictracebiv_results$upr <- plogis(predictracebiv_results$fit + (1.96 * predictracebiv_results$se.fit))
+```
+
+Creates predict plot for Dataset 1 Public Transit Model using predicted values. 
+
+```{r multi_predict_plot_pt1}
+predictracebiv_plot <- ggplot(predictracebiv_results, 
+                               aes(x = needs_access, y = predProb, ymin = lwr, ymax = upr)) +
+  geom_point() + 
+  geom_errorbar() +
+  labs(y = "Predicted Employment Status", 
+       x = "Needs Access to Public Transit") + 
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_x_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1)) +
+  coord_flip()
+
+predictracebiv_plot
+
+ggsave(filename = "./figures/predict_plot_pt1.png", width = 5, plot = predictracebiv_plot)
+
+```
+
+
+Creates predicted values for Dataset 1 Car Ownership Model utilizing the same methods as described above. 
+
+```{r multi_predict_values_car1}
+ptlogit_pred_df2 <- expand.grid(has_car = c(0,1),
+                                income = 10000,
+                               age = 30,
+                               citysize = "largermedium",
+                               race = 1,
+                               gender = 0,
+                               educ = 12,
+                               children = 0)
+
+ptlogit_pred2 <- predict(multivar_model_car1, newdata = ptlogit_pred_df2, type = "response", se = TRUE)
+
+ptlogit_pred2
+
+predictracebiv_results <- cbind(ptlogit_pred_df2, ptlogit_pred2)
+predictracebiv_results$predProb <- plogis(predictracebiv_results$fit)
+predictracebiv_results$lwr <- plogis(predictracebiv_results$fit - (1.96 * predictracebiv_results$se.fit))
+predictracebiv_results$upr <- plogis(predictracebiv_results$fit + (1.96 * predictracebiv_results$se.fit))
+
+```
+
+Creates predict plot for Dataset 1 Car Ownership Model
+
+```{r multi_predict_plot_car1}
+
+predictracebiv_plot2 <- ggplot(predictracebiv_results, 
+                               aes(x = has_car, y = predProb, ymin = lwr, ymax = upr)) +
+  geom_point() + 
+  geom_errorbar() +
+  labs(y = "Predicted Employment Status", 
+                       x = "Has a Car") + 
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_x_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1)) +
+  coord_flip()
+
+predictracebiv_plot2
+
+ggsave(filename = "./figures/predict_plot_car1.png", width = 5, plot = predictracebiv_plot2)
+
+```
+
+Creates predicted values and predict plots for Dataset 2 Public Transit Model. OLS Regressions were much more straight forward since "predict" will automatically create predicted values and their condfidence intervals, so you can bind them together in ggplot and plot the entire range automatically.
+
+```{r predict_plot_pt2}
+ptpred_df2 <- expand.grid(needs_access = c(0, 1), 
+                          income = mean(gss2$income),
+                          race = 0,
+                          gender = 0,
+                          educ = mean(gss2$educ),
+                          age = mean(gss2$age),
+                          children = median(gss2$children),
+                          work = "fulltime",
+                          citysize = "largermedium")
+
+ptpred2 <- predict(multivar_model_pt2, newdata = ptpred_df2, interval = "confidence")
+
+ptpred2
+
+ptpred_plot2 <- ggplot(bind_cols(ptpred_df2, as.data.frame(ptpred2)), 
+                       aes(y = needs_access, x = fit, xmin = lwr, xmax = upr)) +
+  geom_point() +
+  geom_point(size = .1) +
+  labs(x = "Predicted Employment Mobility", 
+      y = "Needs Access to Public Transit") +
+  geom_errorbarh() +
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_y_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1))
+
+ptpred_plot2
+
+ggsave(filename = "./figures/predict_plot_pt2.png", width = 5, plot = ptpred_plot2)
+```
+
+Creates predicted values and predict plots for Dataset 2 Car Ownership Model
+
+```{r predict_plot_car2}
+carpred_df2 <- expand.grid(has_car = c(0, 1), 
+                           income = mean(gss2$income),
+                           race = 0,
+                           gender = 0,
+                           educ = mean(gss2$educ),
+                           age = mean(gss2$age),
+                           children = median(gss2$children),
+                           work = "fulltime",
+                           citysize = "largermedium")
+
+carpred2 <- predict(multivar_model_car2, newdata = carpred_df2, interval = "confidence")
+
+carpred2
+
+carpred_plot2 <- ggplot(bind_cols(carpred_df2, as.data.frame(carpred2)), 
+                        aes(y = has_car, x = fit, xmin = lwr, xmax = upr)) +
+  geom_point() +
+  geom_point(size = .1) +
+  labs(x = "Predicted Employment Mobility", 
+       y = "Has a Car")+
+  geom_errorbarh() +
+  theme_minimal() +
+  theme(text = element_text(size=13)) +
+  scale_y_continuous(labels = (c("0" = "No", "1" = "Yes")), breaks = c(0,1))
+
+
+carpred_plot2
+
+ggsave(filename = "./figures/predict_plot_car2.png", width = 5, plot = carpred_plot2)
+```
+
+
+
