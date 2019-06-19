@@ -1,5 +1,4 @@
-# This repository contains the replication materials for
-# the project Public Transit and Private Car Ownership: How to Best Help Low-Income, Urban Workers by CJ Robinson
+# This repository contains the replication materials for the project Public Transit and Private Car Ownership: How to Best Help Low-Income, Urban Workers by CJ Robinson
 
 ## Setup and Benchmarks
 
