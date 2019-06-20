@@ -29,15 +29,25 @@ figures and tables in the paper. Below, I describe each of the
 datasets in this directory.
 
 bivar_model_car1.RData: Bivariate model of effect of car ownership in dataset 1
+
 bivar_model_car2.RData: Bivariate model of effect of car ownership in dataset 2
+
 bivar_model_pt1.RData: Bivariate model of effect of public transit in dataset 1
+
 bivar_model_pt2.RData: Bivariate model of effect of public transit in dataset 2
+
 gss1.csv: first dataset of respondents that are both employed and unemployed measuring employment status
+
 gss2.csv: second dataset of respondents that are employed measuring perceived mobility
+
 multivar_model_car1.RData: Multivariate model of effect of car ownership in dataset 1
+
 multivar_model_car2.RData: Multivariate model of effect of car ownership in dataset 2
+
 multivar_model_pt1.RData: Multivariate model of effect of public transit in dataset 1
+
 multivar_model_pt2.RData: Multivariate model of effect of public transit in dataset 2
+
 survey_master.csv: original dataset pulled from GSS Data Explorer
 
 ## Code
