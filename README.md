@@ -5,8 +5,7 @@
 Original code run on MAC OSX 10.14.4, 8gb RAM, 1.8 GHz Intel Core i5. R version 1.1.456 
 
 Required packages:
-* plyr
-* dplyr
+* tidyverse
 * ggplot2
 * stargazer
 
